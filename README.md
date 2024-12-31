@@ -1,5 +1,9 @@
 # shetkarisaathi
 A web app for Maharashtra Farmers
+
+requirements
+numpy, pandas, scikit-learn, streamlit, pickle
+
 added features-
 1. weather forecasting for next 5 days
 2. crop recommendation
