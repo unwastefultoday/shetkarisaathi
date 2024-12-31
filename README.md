@@ -15,6 +15,7 @@ planned features
 3. links to govt schemes (genAI)
 
 Tools used
+
 1.openweathermap, OGD API
 
 2. ML
