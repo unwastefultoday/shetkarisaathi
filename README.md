@@ -16,6 +16,9 @@ planned features
 
 Tools used
 1.openweathermap, OGD API
+
 2. ML
-3. Gen AI
-4. Streamlit
+   
+4. Gen AI
+   
+5. Streamlit
