@@ -1,4 +1,4 @@
-# shetkarisaathi
+# shetkarisaathi / shetisahayak
 A web app for Maharashtra Farmers
 
 requirements
