@@ -329,7 +329,7 @@ def main():
 
     with tab4:
         def give_solution(crop, disease, language = "English"):
-            prompt = f"""Your name is Sheti Sahayak, which is Marathi for farming friend. For this particular use case, I am asking you to take on the role of a farming expert who shall assist a marathi farmer who's {crop} crops are struggling with {disease}. Frame your answer to this query as if you are speaking to that farmer regarding this issue. Frame your answer in {language} only."""  
+            prompt = f"""Your name is Sheti Sahayak, which is Marathi for farming friend. For this particular use case, I am asking you to take on the role of a farming expert who shall assist a marathi farmer who's {crop} crops are struggling with {disease}. Frame your answer to this query as if you are speaking to that farmer regarding this issue. Frame your answer in {language} only and consider only the information given in this prompt, assume that no other information is there. Give general guidelines for the solution. DOn't mention whether your advice is general or specific, jist proceed as if ordinary."""  
             model = genai.GenerativeModel("gemini-1.5-flash")
             response = model.generate_content(prompt)
             return response.text
