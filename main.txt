@@ -1,0 +1,52 @@
+import streamlit as st
+import requests
+
+def get_weather(city, api_key):
+    """
+    Fetch weather data from an external API.
+    """
+    base_url = "http://api.openweathermap.org/data/2.5/weather"
+    params = {
+        "q": city,
+        "appid": api_key,
+        "units": "metric"  # For temperature in Celsius
+    }
+    response = requests.get(base_url, params=params)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return None
+
+def main():
+    st.title("Shetkari Saathi")
+
+    # Tabs
+    tab1, tab2 = st.tabs(["Weather Forecast", "Coming Soon"])
+
+    with tab1:
+        st.header("Weather Forecast")
+        
+        # API key for OpenWeatherMap
+        api_key = "2deccccbe8ae3f8affd1dda7de033aee"  # Replace with your API key
+
+        # User input for city
+        city = st.text_input("Enter city name:", "")
+
+        if city:
+            weather_data = get_weather(city, api_key)
+
+            if weather_data:
+                st.subheader(f"Weather in {city.capitalize()}")
+                st.write(f"**Temperature:** {weather_data['main']['temp']} °C")
+                st.write(f"**Humidity:** {weather_data['main']['humidity']}%")
+                st.write(f"**Weather:** {weather_data['weather'][0]['description'].capitalize()}")
+                st.write(f"**Wind Speed:** {weather_data['wind']['speed']} m/s")
+            else:
+                st.error("Could not fetch weather data. Please check the city name or try again later.")
+
+    with tab2:
+        st.header("Coming Soon")
+        st.write("Stay tuned for new features!")
+
+if __name__ == "__main__":
+    main()

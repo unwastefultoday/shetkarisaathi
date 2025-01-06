@@ -1,0 +1,339 @@
+ import streamlit as st
+import requests
+import pandas as pd
+import pickle
+import os
+import random
+from googletrans import Translator
+import google.generativeai as genai
+translator = Translator()
+os.chdir(r"C:\Users\HP\Desktop\shetkarisaathi")
+
+
+def english_to_marathi(text, lang="marathi"):
+  """
+  Translates English text to Marathi using the Gemini API.
+  If lang is "english", returns the input text as is.
+
+  Args:
+    text: The English text to be translated.
+    lang: The target language. Default is "marathi".
+
+  Returns:
+    The translated text or the input text if lang is "english".
+  """
+
+  genai.configure(api_key="AIzaSyC7EMGMD40KoLyLg_DbgHpPUdJ0VeJ2ZMg")
+  model = genai.GenerativeModel("gemini-1.5-flash")
+
+  if lang.lower() == "english":
+    return text
+
+  prompt = f"Translate the following English text to Marathi: {text}. Limit your response to the question asked and give one single best answer and ensure not to add words from other languages."
+  response = model.generate_content(prompt)
+  return response.text    
+
+def get_weather(city, api_key):
+    """
+    Fetch weather data from an external API.
+    """
+    base_url = "http://api.openweathermap.org/data/2.5/weather"
+    params = {
+        "q": city,
+        "appid": api_key,
+        "units": "metric"  # For temperature in Celsius
+    }
+    response = requests.get(base_url, params=params)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return None
+
+def get_weather_forecast(city, api_key):
+    # OpenWeatherMap API endpoint
+    url = f"http://api.openweathermap.org/data/2.5/forecast?q={city}&appid={api_key}&units=metric"
+
+    # Fetch data from API
+    response = requests.get(url)
+
+    # Check if the response is successful
+    if response.status_code == 200:
+        data = response.json()
+        
+        # Extracting required data
+        weather_data = [
+            {
+                "date": entry["dt_txt"],
+                "temperature": entry["main"]["temp"],
+                "perceived_temperature": entry["main"]["feels_like"],
+                "humidity": entry["main"]["humidity"],
+                "pressure": entry["main"]["pressure"],
+                "weather_description": entry["weather"][0]["description"],
+            }
+            for entry in data["list"]
+        ]
+
+        # Convert to DataFrame
+        forecast_df = pd.DataFrame(weather_data)
+        return forecast_df
+    else:
+        print(f"Error: Unable to fetch data for city '{city}', status code {response.status_code}")
+        return None
+
+
+def main():
+    st.title(english_to_marathi("Farmer Friend"))
+    lang=st.selectbox("Select a language:", ["English", "मराठी"], key = 21)
+    tab1, tab2,tab3,tab4, tab5, tab6 = st.tabs([english_to_marathi(x, lang) for x in ["Weather Forecast", "Which Crop Should I Plant?", "What fertilizer should I use?", "Which crop disease is this?", "What are the market prices?", "Links to government schemes"]])
+    with tab1:
+        st.header(english_to_marathi("Weather Forecast",lang))
+    
+        # API key for OpenWeatherMap
+        api_key = "2deccccbe8ae3f8affd1dda7de033aee"  
+        # User input for city
+        districts = {
+    "अहमदनगर": "Ahmednagar", "अकोला": "Akola", "अमरावती": "Amravati", "औरंगाबाद": "Aurangabad",
+    "बीड": "Beed", "भंडारा": "Bhandara", "बुलढाणा": "Buldhana", "चंद्रपूर": "Chandrapur",
+    "धुळे": "Dhule", "गडचिरोली": "Gadchiroli", "गोंदिया": "Gondia", "हिंगोली": "Hingoli",
+    "जळगाव": "Jalgaon", "जालना": "Jalna", "कोल्हापूर": "Kolhapur", "लातूर": "Latur",
+    "मुंबई शहर": "Mumbai City", "मुंबई उपनगर": "Mumbai Suburban", "नागपूर": "Nagpur",
+    "नांदेड": "Nanded", "नंदुरबार": "Nandurbar", "नाशिक": "Nashik", "उस्मानाबाद": "Osmanabad",
+    "पालघर": "Palghar", "परभणी": "Parbhani", "पुणे": "Pune", "रायगड": "Raigad",
+    "रत्नागिरी": "Ratnagiri", "सांगली": "Sangli", "सातारा": "Satara", "सिंधुदुर्ग": "Sindhudurg",
+    "सोलापूर": "Solapur", "ठाणे": "Thane", "वर्धा": "Wardha", "वाशिम": "Washim", "यवतमाळ": "Yavatmal"
+}
+        if lang == "मराठी":
+            city = districts[st.selectbox("Select a district:", districts, key = 99)]
+        else:
+            city = st.selectbox("Select a district:", districts.values(), key = 99)
+
+        if st.button("Get Weather"):
+            if city:
+                weather_data = get_weather(city, api_key)
+                if weather_data:
+                    st.write(f"**Temperature:** {weather_data['main']['temp']} °C")
+                    st.write(f"**Humidity:** {weather_data['main']['humidity']}%")
+                    st.write(f"**Weather:** {weather_data['weather'][0]['description'].capitalize()}")
+                    st.write(f"**Wind Speed:** {weather_data['wind']['speed']} m/s")
+                else:
+                    st.error("हवामान डेटा आणू शकलो नाही. कृपया शहराचे नाव तपासा किंवा नंतर पुन्हा प्रयत्न करा.")
+            
+                forecast = get_weather_forecast(city, api_key)
+                if 'forecast' in locals() and isinstance(forecast, pd.DataFrame):
+                    st.subheader(f"Next 5 days Hourly Forecast")
+                    st.write(forecast)   
+    with tab2:
+        st.header("Crop Recommendation")
+
+        districts = {
+    "अहमदनगर": "Ahmednagar", "अकोला": "Akola", "अमरावती": "Amravati", "औरंगाबाद": "Aurangabad",
+    "बीड": "Beed", "भंडारा": "Bhandara", "बुलढाणा": "Buldhana", "चंद्रपूर": "Chandrapur",
+    "धुळे": "Dhule", "गडचिरोली": "Gadchiroli", "गोंदिया": "Gondia", "हिंगोली": "Hingoli",
+    "जळगाव": "Jalgaon", "जालना": "Jalna", "कोल्हापूर": "Kolhapur", "लातूर": "Latur",
+    "मुंबई शहर": "Mumbai City", "मुंबई उपनगर": "Mumbai Suburban", "नागपूर": "Nagpur",
+    "नांदेड": "Nanded", "नंदुरबार": "Nandurbar", "नाशिक": "Nashik", "उस्मानाबाद": "Osmanabad",
+    "पालघर": "Palghar", "परभणी": "Parbhani", "पुणे": "Pune", "रायगड": "Raigad",
+    "रत्नागिरी": "Ratnagiri", "सांगली": "Sangli", "सातारा": "Satara", "सिंधुदुर्ग": "Sindhudurg",
+    "सोलापूर": "Solapur", "ठाणे": "Thane", "वर्धा": "Wardha", "वाशिम": "Washim", "यवतमाळ": "Yavatmal"}
+        
+        if lang == "मराठी":  
+            district = districts[st.selectbox("Select a district:", districts, key = 10)]
+            
+        else:
+           district = st.selectbox("Select a district:", districts.values(), key = 10)
+        westmhdistricts = ["Kolhapur", "Solapur", "Satara", "Sangli", "Pune"]
+
+        if district in westmhdistricts:
+            with open("dumped models/westmh_crops.pkl", "rb") as file:
+                model = pickle.load(file)
+            soil_color_dict = {'काळा': 'Black','गडद तपकिरी': 'Dark Brown','हलका तपकिरी': 'Light Brown','मध्यम तपकिरी': 'Medium Brown','लाल': 'Red', 'लाल तपकिरी': 'Reddish Brown'}
+            soil_colors = list(soil_color_dict.values())
+            
+            # Input Fields
+            soil_color = soil_color_dict[st.selectbox("Soil Color", options=soil_color_dict.keys())]
+            nitrogen = st.number_input("Nitrogen (mg/kg)", min_value=0, max_value=500, step=5)
+            phosphorus = st.number_input("Phosphorus (mg/kg)", min_value=0, max_value=500, step=5)
+            potassium = st.number_input("Potassium (mg/kg)", min_value=0, max_value=500, step=5)
+            soil_ph = st.number_input("Soil pH", min_value=0.0, max_value=14.0, step=1.0)
+            rainfall = st.number_input("Rainfall (mm)", min_value=0.0, step=1.0)
+            temperature = st.number_input("Temperature (°C)", min_value=-10.0, max_value=50.0, step=1.0)
+            
+            if st.button("Recommend Crop"):
+                input_data = pd.DataFrame({
+                "Nitrogen": [nitrogen],
+                "Phosphorus": [phosphorus],
+                "Potassium": [potassium],
+                "pH": [soil_ph],
+                "Rainfall": [rainfall],
+                "Temperature": [temperature]
+             })
+            
+                # One-hot encode the district and soil color
+                for dist in westmhdistricts:
+                    input_data[f"District_Name_{dist}"] = [1 if district == dist else 0]
+    
+                for color in soil_colors:
+                    input_data[f"Soil_color_{color}"] = [1 if soil_color == color else 0]
+
+                # Predict crop
+                prediction = model.predict(input_data)[0]
+                output = f"The recommended crop is: **{prediction}**"
+                # Display the prediction
+                st.success(english_to_marathi(output,lang))
+
+        else:
+            with open("dumped models/crops.pkl", "rb") as file:
+                model = pickle.load(file)
+                nitrogen = st.number_input("Nitrogen (mg/kg)", min_value=0, max_value=500, step=5)
+                phosphorus = st.number_input("Phosphorus (mg/kg)", min_value=0, max_value=500, step=5)
+                potassium = st.number_input("Potassium (mg/kg)", min_value=0, max_value=500, step=5)
+                soil_ph = st.number_input("Soil pH", min_value=0.0, max_value=14.0, step=1.0)
+                humidity = st.number_input("Humidity %", min_value=0.0, max_value=100.0, step=1.0)
+                rainfall = st.number_input("Rainfall (mm)", min_value=0.0, step=1.0)
+                temperature = st.number_input("Temperature (°C)", min_value=-10.0, max_value=50.0, step=1.0)
+                
+                if st.button("Recommend Crop"):
+                    input_data = pd.DataFrame({
+                    "N": [nitrogen],
+                    "P": [phosphorus],
+                    "K": [potassium],
+                    "temperature": [temperature],
+                    "humidity":[humidity],
+                    "ph": [soil_ph],
+                    "rainfall": [rainfall]
+                    })
+
+                    # Predict crop
+                    prediction = model.predict(input_data)[0]
+                    output = f"The recommended crop is: **{prediction}**"
+                    st.success(english_to_marathi(output,lang))
+    
+    with tab3:
+        st.header("Fertilizer Recommendation")
+        districts = {
+    "अहमदनगर": "Ahmednagar", "अकोला": "Akola", "अमरावती": "Amravati", "औरंगाबाद": "Aurangabad",
+    "बीड": "Beed", "भंडारा": "Bhandara", "बुलढाणा": "Buldhana", "चंद्रपूर": "Chandrapur",
+    "धुळे": "Dhule", "गडचिरोली": "Gadchiroli", "गोंदिया": "Gondia", "हिंगोली": "Hingoli",
+    "जळगाव": "Jalgaon", "जालना": "Jalna", "कोल्हापूर": "Kolhapur", "लातूर": "Latur",
+    "मुंबई शहर": "Mumbai City", "मुंबई उपनगर": "Mumbai Suburban", "नागपूर": "Nagpur",
+    "नांदेड": "Nanded", "नंदुरबार": "Nandurbar", "नाशिक": "Nashik", "उस्मानाबाद": "Osmanabad",
+    "पालघर": "Palghar", "परभणी": "Parbhani", "पुणे": "Pune", "रायगड": "Raigad",
+    "रत्नागिरी": "Ratnagiri", "सांगली": "Sangli", "सातारा": "Satara", "सिंधुदुर्ग": "Sindhudurg",
+    "सोलापूर": "Solapur", "ठाणे": "Thane", "वर्धा": "Wardha", "वाशिम": "Washim", "यवतमाळ": "Yavatmal"
+}
+
+        district = districts[st.selectbox("Select a district:", districts, key = 20)]
+        westmhdistricts = ["कोल्हापूर", "सोलापूर", "सातारा", "सांगली", "पुणे"]
+        westmhdistricts = ["Kolhapur", "Solapur", "Satara", "Sangli", "Pune"]
+        if district not in westmhdistricts:
+            with open("dumped models/fertilizer_dt.pkl", "rb") as file:
+                model = pickle.load(file)
+
+            soil = ['Black', 'Clayey', 'Loamy', 'Sandy', 'Red']
+            crop = ['Barley','Cotton','Ground Nuts','Maize','Millets','Oil seeds','Paddy','Pulses','Sugarcane','Tobacco','Wheat','coffee','kidneybeans','orange','pomegranate','rice','watermelon']
+
+            #Feature Values
+            Temperature = st.number_input("Temperature (°C)", min_value=-10.0, max_value=50.0, step=1.0, key = 4)
+            Humidity = st.number_input("Humidity (%)", min_value=0.0, max_value=100.0, step=1.0, key = 5)
+            Moisture = st.number_input("Soil Moisture (%)", min_value=0.0, max_value=100.0, step=1.0, key = 6)
+            Nitrogen = st.number_input("Nitrogen (mg/kg)", min_value=0, max_value=500, step=5, key = 1)
+            Phosphorus = st.number_input("Phosphorus (mg/kg)", min_value=0, max_value=500, step=5, key = 2)
+            Potassium = st.number_input("Potassium (mg/kg)", min_value=0, max_value=500, step=5, key = 3)
+            Soil_Type = st.selectbox("Soil Type", options=soil)
+            Crop_Type = st.selectbox("Crop Type", options=crop, key = 7)
+            if st.button("Recommend Fertilizer",key = 8):
+                input_data = pd.DataFrame({
+                "Temparature": [Temperature],
+                "Humidity": [Humidity],
+                "Moisture": [Moisture]
+                })
+                # One-hot encode the district and soil color
+                for s in soil:
+                    input_data[f"Soil_Type_{s}"] = [1 if Soil_Type == s else 0]
+    
+                for ct in crop:
+                    input_data[f"Crop_Type_{ct}"] = [1 if Crop_Type == ct else 0]
+
+                input_data["Nitrogen"]= [Nitrogen]
+
+                input_data["Potassium"]=[Potassium]
+
+                input_data["Phosphorous"]=[Phosphorus]
+                correct_order = ['Temparature', 'Humidity', 'Moisture', 'Nitrogen', 'Potassium',
+       'Phosphorous', 'Soil_Type_Black', 'Soil_Type_Clayey', 'Soil_Type_Loamy',
+       'Soil_Type_Red', 'Soil_Type_Sandy', 'Crop_Type_Barley',
+       'Crop_Type_Cotton', 'Crop_Type_Ground Nuts', 'Crop_Type_Maize',
+       'Crop_Type_Millets', 'Crop_Type_Oil seeds', 'Crop_Type_Paddy',
+       'Crop_Type_Pulses', 'Crop_Type_Sugarcane', 'Crop_Type_Tobacco',
+       'Crop_Type_Wheat', 'Crop_Type_coffee', 'Crop_Type_kidneybeans',
+       'Crop_Type_orange', 'Crop_Type_pomegranate', 'Crop_Type_rice',
+       'Crop_Type_watermelon']  
+                input_data = input_data.reindex(columns=correct_order, fill_value=0)             
+                # Predict crop
+                prediction = model.predict(input_data)[0]
+                output = f"The recommended fertilizer is: **{prediction}**"
+                st.success(english_to_marathi(output,lang))
+        else:
+            with open("dumped models/westmh_fertilizer.pkl", "rb") as file:
+                model = pickle.load(file)
+            westmhdistricts = ["Kolhapur", "Solapur", "Satara", "Sangli", "Pune"]
+            soil_colors = ['Black', 'Dark Brown', 'Light Brown', 'Medium Brown', 'Red', 'Reddish Brown']
+            crops = ['Cotton','Ginger', 'Gram', 'Grapes', 'Groundnut', 'Jowar', 'Maize', 'Masoor', 'Moong', 'Rice', 'Soybean', 'Sugarcane', 'Tur', 'Turmeric', 'Urad', 'Wheat']
+            # Input Fields
+            soil_color = st.selectbox("Soil Color", options=soil_colors)
+            nitrogen = st.number_input("Nitrogen (mg/kg)", min_value=0, max_value=500, step=5, key = 12)
+            phosphorus = st.number_input("Phosphorus (mg/kg)", min_value=0, max_value=500, step=5,key = 13)
+            potassium = st.number_input("Potassium (mg/kg)", min_value=0, max_value=500, step=5,key = 14)
+            soil_ph = st.number_input("Soil pH", min_value=0.0, max_value=14.0, step=1.0,key = 15)
+            rainfall = st.number_input("Rainfall (mm)", min_value=0.0, step=1.0,key = 16)
+            temperature = st.number_input("Temperature (°C)", min_value=-10.0, max_value=50.0, step=1.0,key = 17)
+            Crop_Type = st.selectbox("Crop Type", options=crops, key = 11)
+            
+            if st.button("Recommend Crop", key = 18):
+                input_data = pd.DataFrame({
+                "Nitrogen": [nitrogen],
+                "Phosphorus": [phosphorus],
+                "Potassium": [potassium],
+                "pH": [soil_ph],
+                "Rainfall": [rainfall],
+                "Temperature": [temperature]
+             })
+            
+       
+                for dist in westmhdistricts:
+                    input_data[f"District_Name_{dist}"] = [1 if district == dist else 0]
+    
+                for color in soil_colors:
+                    input_data[f"Soil_color_{color}"] = [1 if soil_color == color else 0]
+
+                for crop in crops:
+                    input_data[f"Crop_{crop}"] = [1 if Crop_Type == crop else 0]
+                correct_order = ['Nitrogen', 'Phosphorus', 'Potassium', 'pH', 'Rainfall', 'Temperature',
+       'District_Name_Kolhapur', 'District_Name_Pune', 'District_Name_Sangli',
+       'District_Name_Satara', 'District_Name_Solapur', 'Soil_color_Black',
+       'Soil_color_Dark Brown', 'Soil_color_Light Brown',
+       'Soil_color_Medium Brown', 'Soil_color_Red', 'Soil_color_Reddish Brown',
+       'Crop_Cotton', 'Crop_Ginger', 'Crop_Gram', 'Crop_Grapes',
+       'Crop_Groundnut', 'Crop_Jowar', 'Crop_Maize', 'Crop_Masoor',
+       'Crop_Moong', 'Crop_Rice', 'Crop_Soybean', 'Crop_Sugarcane', 'Crop_Tur',
+       'Crop_Turmeric', 'Crop_Urad', 'Crop_Wheat']
+                input_data = input_data.reindex(columns=correct_order, fill_value=0) 
+
+                # Predict crop
+                prediction = model.predict(input_data)[0]
+                output = f"The recommended fertilizer is: **{prediction}**"
+                # Display the prediction
+                st.success(english_to_marathi(output,lang))
+
+    with tab4:
+        st.header("Coming Soon")
+    with tab5:
+        st.header("Coming Soon")
+    with tab6:
+        st.header("Coming Soon")
+    
+    
+  
+
+if __name__ == "__main__":
+    main()
