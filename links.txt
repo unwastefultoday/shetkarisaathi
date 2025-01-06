@@ -1,0 +1,4 @@
+general crops data = https://www.kaggle.com/datasets/atharvaingle/crop-recommendation-dataset
+western MH crops data = https://www.kaggle.com/datasets/sanchitagholap/crop-and-fertilizer-dataset-for-westernmaharashtra
+fertilizer data = https://www.kaggle.com/datasets/radwankhondokar/fertilizer-recommendation-dataset?select=f2.csv
+crop images data = https://www.kaggle.com/datasets/nafishamoin/new-bangladeshi-crop-disease
